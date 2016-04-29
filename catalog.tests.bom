@@ -10,7 +10,7 @@ brooklyn.catalog:
     license_url: http://www.apache.org/licenses/LICENSE-2.0.txt
     item:
       services:
-      - type: tomcat
+      - type: brooklyn-tomcat-7-server
         id: tomcat
         brooklyn.config:
           webapp.enabledProtocols:
