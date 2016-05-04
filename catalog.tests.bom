@@ -85,15 +85,3 @@ brooklyn.catalog:
           applyAssertionTo: status
           assert:
           - isEqualTo: 200
-          
-        # JMX Tests  
-        - type: org.apache.brooklyn.test.framework.TestHttpCall
-          name: Check JMX Console is Reachable
-          url: >
-            $brooklyn:formatString("https://%s:%s",
-            $brooklyn:component("tomcat").attributeWhenReady("host.address"),
-            $brooklyn:component("tomcat").attributeWhenReady("jmx.direct.port"))
-          timeout: 10m
-          applyAssertionTo: status
-          assert:
-          - isEqualTo: 200
