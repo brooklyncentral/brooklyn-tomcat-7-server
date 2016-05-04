@@ -1,10 +1,10 @@
 brooklyn.catalog:
   items:
-  - id: tomcat-tests
+  - id: tomcat7-tests
     version: 1.0
     itemType: template
     iconUrl: http://tomcat.apache.org/images/tomcat-power.gif
-    name: Tomcat tests
+    name: Tomcat 7 tests
     description: Test that tomcat is running
     license_code: Apache-2.0
     license_url: http://www.apache.org/licenses/LICENSE-2.0.txt
