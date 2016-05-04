@@ -24,10 +24,10 @@ brooklyn.catalog:
   itemType: template
   iconUrl: http://tomcat.apache.org/images/tomcat-power.gif
   license: Apache-2.0
-  qa: catalog.tests.bom
   publish:
     license_code: Apache-2.0
     reference: reference.json
+    qa: catalog.tests.bom
   item:
     services:
     - type: org.apache.brooklyn.entity.webapp.tomcat.TomcatServer
