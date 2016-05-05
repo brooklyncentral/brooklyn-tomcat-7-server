@@ -1,6 +1,6 @@
 brooklyn.catalog:
   items:
-  - id: tomcat7-tests
+  - id: tomcat-7-tests
     version: 0.2
     itemType: template
     iconUrl: http://tomcat.apache.org/images/tomcat-power.gif
