@@ -1,7 +1,25 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
 brooklyn.catalog:
   items:
-  - id: tomcat7-tests
-    version: 1.0
+  - id: tomcat-7-tests
+    version: 0.2
     itemType: template
     iconUrl: http://tomcat.apache.org/images/tomcat-power.gif
     name: Tomcat 7 tests
@@ -25,63 +43,147 @@ brooklyn.catalog:
       - type: org.apache.brooklyn.test.framework.TestCase
         name: Tomcat Tests
         brooklyn.children:
-        # Is up and can deploy
-        - type: org.apache.brooklyn.test.framework.TestSensor
-          name: TEST [service.state] IS [running] WITHIN [10m]
-          target: $brooklyn:component("tomcat")
-          sensor: service.state
-          timeout: 10m
-          assert:
-          - matches: running
-        - type: org.apache.brooklyn.test.framework.TestEffector
-          name: Invoke Deploy Effector
-          targetId: tomcat
-          effector: deploy
-          timeout: 5m
-          params:
-            url: https://tomcat.apache.org/tomcat-7.0-doc/appdev/sample/sample.war
-            targetName: sample
+        - type: org.apache.brooklyn.test.framework.TestCase
+          name: "Sensor Tests"
+          brooklyn.children:
+          # Is up and can deploy
+          - type: org.apache.brooklyn.test.framework.TestSensor
+            name: TEST [service.state] IS [running] WITHIN [10m]
+            target: $brooklyn:component("tomcat")
+            sensor: service.state
+            timeout: 10m
+            assert:
+            - matches: running
+          - type: org.apache.brooklyn.test.framework.TestEffector
+            name: Invoke Deploy Effector
+            targetId: tomcat
+            effector: deploy
+            timeout: 5m
+            params:
+              url: https://tomcat.apache.org/tomcat-7.0-doc/appdev/sample/sample.war
+              targetName: sample
+        
+        - type: org.apache.brooklyn.test.framework.TestCase
+          name: "Effector Restart, Stop & Restart Tests"
+          brooklyn.children:      
+          # Effector: restart Tests
+          - type: org.apache.brooklyn.test.framework.TestEffector
+            name: Invoke restart Effector
+            targetId: tomcat
+            effector: restart
+            params:
+              restartMachine: false
+            timeout: 5m
+          - type: org.apache.brooklyn.test.framework.TestSensor
+            name: Check Tomcat is up after restart
+            targetId: tomcat
+            sensor: service.isUp
+            timeout: 1m
+            assert:
+            - equals: true
+          - type: org.apache.brooklyn.test.framework.SimpleShellCommandTest
+            name: Check Tomcat process has restarted
+            targetId: tomcat
+            command: ps -ef | grep [t]omcat
+            assertStatus:
+              equals: 0
+            assertOut:
+              isEmpty: false
+            assertErr:
+              isEmpty: true
+          # Effector: stop + restart Tests
+          - type: org.apache.brooklyn.test.framework.TestEffector
+            name: Invoke stop Effector
+            targetId: tomcat
+            effector: stop
+            params:
+              stopMachineMode: NEVER
+            timeout: 5m
+          - type: org.apache.brooklyn.test.framework.TestSensor
+            name: Check Tomcat is not up after stop
+            targetId: tomcat
+            sensor: service.isUp
+            timeout: 5m
+            assert:
+            - equals: false
+          - type: org.apache.brooklyn.test.framework.SimpleShellCommandTest
+            name: Check Tomcat process has stopped
+            targetId: tomcat
+            command: ps -ef | grep [t]omcat
+            assertStatus:
+              equals: 1
+            assertOut:
+              isEmpty: true
+            assertErr:
+              isEmpty: true
+          - type: org.apache.brooklyn.test.framework.TestEffector
+            name: Invoke restart Effector
+            targetId: tomcat
+            effector: restart
+            params:
+              restartMachine: false
+            timeout: 5m
+          - type: org.apache.brooklyn.test.framework.TestSensor
+            name: Check Tomcat is up after restart
+            targetId: tomcat
+            sensor: service.isUp
+            timeout: 1m
+            assert:
+            - equals: true
+          - type: org.apache.brooklyn.test.framework.SimpleShellCommandTest
+            name: Check Tomcat process has restarted
+            targetId: tomcat
+            command: ps -ef | grep [t]omcat
+            assertStatus:
+              equals: 0
+            assertOut:
+              isEmpty: false
+            assertErr:
+              isEmpty: true
+        
+        - type: org.apache.brooklyn.test.framework.TestCase
+          name: "HTTP / HTTPS Tests"
+          brooklyn.children:  
+          # HTTP Tests
+          - type: org.apache.brooklyn.test.framework.TestHttpCall
+            name: Check Servlet HTTP Response Status Code
+            url: >
+              $brooklyn:formatString("http://%s:%s/sample/hello",
+              $brooklyn:component("tomcat").attributeWhenReady("host.address"),
+              $brooklyn:component("tomcat").attributeWhenReady("http.port"))
+            timeout: 10m
+            applyAssertionTo: status
+            assert:
+            - isEqualTo: 200
+          - type: org.apache.brooklyn.test.framework.TestHttpCall
+            name: Check JSP HTTP Response Status Code
+            url: >
+              $brooklyn:formatString("http://%s:%s/sample/hello.jsp",
+              $brooklyn:component("tomcat").attributeWhenReady("host.address"),
+              $brooklyn:component("tomcat").attributeWhenReady("http.port"))
+            timeout: 10m
+            applyAssertionTo: status
+            assert:
+            - isEqualTo: 200
             
-        # HTTP Tests
-        - type: org.apache.brooklyn.test.framework.TestHttpCall
-          name: Check Servlet HTTP Response Status Code
-          url: >
-            $brooklyn:formatString("http://%s:%s/sample/hello",
-            $brooklyn:component("tomcat").attributeWhenReady("host.address"),
-            $brooklyn:component("tomcat").attributeWhenReady("http.port"))
-          timeout: 10m
-          applyAssertionTo: status
-          assert:
-          - isEqualTo: 200
-        - type: org.apache.brooklyn.test.framework.TestHttpCall
-          name: Check JSP HTTP Response Status Code
-          url: >
-            $brooklyn:formatString("http://%s:%s/sample/hello.jsp",
-            $brooklyn:component("tomcat").attributeWhenReady("host.address"),
-            $brooklyn:component("tomcat").attributeWhenReady("http.port"))
-          timeout: 10m
-          applyAssertionTo: status
-          assert:
-          - isEqualTo: 200
-          
-        # HTTPS Tests
-        - type: org.apache.brooklyn.test.framework.TestHttpCall
-          name: Check Servlet HTTPS Response Status Code
-          url: >
-            $brooklyn:formatString("https://%s:%s/sample/hello",
-            $brooklyn:component("tomcat").attributeWhenReady("host.address"),
-            $brooklyn:component("tomcat").attributeWhenReady("https.port"))
-          timeout: 10m
-          applyAssertionTo: status
-          assert:
-          - isEqualTo: 200
-        - type: org.apache.brooklyn.test.framework.TestHttpCall
-          name: Check JSP HTTPS Response Status Code
-          url: >
-            $brooklyn:formatString("https://%s:%s/sample/hello.jsp",
-            $brooklyn:component("tomcat").attributeWhenReady("host.address"),
-            $brooklyn:component("tomcat").attributeWhenReady("https.port"))
-          timeout: 10m
-          applyAssertionTo: status
-          assert:
-          - isEqualTo: 200
+          # HTTPS Tests
+          - type: org.apache.brooklyn.test.framework.TestHttpCall
+            name: Check Servlet HTTPS Response Status Code
+            url: >
+              $brooklyn:formatString("https://%s:%s/sample/hello",
+              $brooklyn:component("tomcat").attributeWhenReady("host.address"),
+              $brooklyn:component("tomcat").attributeWhenReady("https.port"))
+            timeout: 10m
+            applyAssertionTo: status
+            assert:
+            - isEqualTo: 200
+          - type: org.apache.brooklyn.test.framework.TestHttpCall
+            name: Check JSP HTTPS Response Status Code
+            url: >
+              $brooklyn:formatString("https://%s:%s/sample/hello.jsp",
+              $brooklyn:component("tomcat").attributeWhenReady("host.address"),
+              $brooklyn:component("tomcat").attributeWhenReady("https.port"))
+            timeout: 10m
+            applyAssertionTo: status
+            assert:
+            - isEqualTo: 200
