@@ -18,7 +18,7 @@
 #
 brooklyn.catalog:
   items:
-  - "https://raw.githubusercontent.com/brooklyncentral/common-catalog-utils/master/common-tests/src/main/resources/commontests/common.tests.bom"
+  - https://github.com/brooklyncentral/common-catalog-utils/releases/download/v0.1.0/common.tests.bom
   - id: tomcat-7-tests
     version: 0.2
     itemType: template
